@@ -13,6 +13,6 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/professores/',include('professores.urls')),
     path('api/',include('agendamentos.urls')),
-    
+    path('api/',include('avaliacoes.urls')),
 
 ]

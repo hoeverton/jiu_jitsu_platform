@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'agendamentos',
     'pagamentos',
     'django_filters',
+    'avaliacoes',
 ]
 
 MIDDLEWARE = [
