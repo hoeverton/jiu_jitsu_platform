@@ -1,0 +1,29 @@
+from django.urls import path
+from .views import (
+    DisponibilidadeListView,
+    DisponibilidadeCreateView,
+    AgendamentoCreateView,
+    MeusAgendamentosView,
+    ProfessorAgendamentosView,
+    CancelarAgendamentoView,
+    ConfirmarAgendamentoView,
+)
+
+urlpatterns = [
+
+    path('disponibilidades/',DisponibilidadeListView.as_view(),
+         name='disponibilidade-list'),
+    path('disponibilidades/create/',DisponibilidadeCreateView.as_view(),
+         name='disponibilidade-create'),
+    path('agendamentos/create/',AgendamentoCreateView.as_view(),
+         name='agendamento-create'),
+    path('me/agendamentos/',MeusAgendamentosView.as_view(),
+         name='meus-agendamentos'),
+    path('professor/agendamentos/',ProfessorAgendamentosView.as_view(),
+         name='professor-agendamentos'),     
+    path('agendamentos/<int:pk>/cancelar/',CancelarAgendamentoView.as_view(),
+         name='cancelar-agendamento'),
+    path('agendamentos/<int:pk>/confirmar/',ConfirmarAgendamentoView.as_view(),
+          name='confirmar-agendamento'),      
+    
+]
