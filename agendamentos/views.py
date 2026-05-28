@@ -144,4 +144,29 @@ class ConfirmarAgendamentoView(generics.UpdateAPIView):
 
         serializer.save(
             status='confirmado'
-        )        
+        )   
+
+class ConcluirAgendamentoView(generics.UpdateAPIView):
+
+    serializer_class = AgendamentoSerializer
+
+    permission_classes = [IsAuthenticated]
+
+    http_method_names = ['patch']
+
+    def get_object(self):
+
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        return Agendamento.objects.get(
+            id=self.kwargs['pk'],
+            professor=professor
+        )
+
+    def perform_update(self, serializer):
+
+        serializer.save(
+            status='concluido'
+        )             

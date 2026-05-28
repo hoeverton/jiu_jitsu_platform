@@ -7,6 +7,7 @@ from .views import (
     ProfessorAgendamentosView,
     CancelarAgendamentoView,
     ConfirmarAgendamentoView,
+    ConcluirAgendamentoView,
 )
 
 urlpatterns = [
@@ -25,5 +26,6 @@ urlpatterns = [
          name='cancelar-agendamento'),
     path('agendamentos/<int:pk>/confirmar/',ConfirmarAgendamentoView.as_view(),
           name='confirmar-agendamento'),      
-    
+    path('agendamentos/<int:pk>/concluir/',ConcluirAgendamentoView.as_view(),
+         name='concluir-agendamento'),
 ]

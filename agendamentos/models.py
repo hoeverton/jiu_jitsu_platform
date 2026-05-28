@@ -30,6 +30,7 @@ class Agendamento(models.Model):
         ('pendente', 'Pendente'),
         ('confirmado', 'Confirmado'),
         ('cancelado', 'Cancelado'),
+        ('concluido', 'Concluído'),
     )
 
     aluno = models.ForeignKey(

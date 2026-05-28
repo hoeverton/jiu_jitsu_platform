@@ -31,6 +31,11 @@ class AvaliacaoCreateView(generics.CreateAPIView):
             raise serializers.ValidationError(
                 'Este agendamento já foi avaliado.'
             )
+        if agendamento.status != 'concluido':
+
+            raise serializers.ValidationError(
+                'A aula precisa estar concluída para ser avaliada.'
+            )
 
         serializer.save(
             aluno=self.request.user,
