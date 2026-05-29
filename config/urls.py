@@ -15,5 +15,6 @@ urlpatterns = [
     path('api/',include('agendamentos.urls')),
     path('api/',include('avaliacoes.urls')),
     path('api/pagamentos/',include('pagamentos.urls')),
+    path('api/alunos/', include('alunos.urls')),
 
 ]
