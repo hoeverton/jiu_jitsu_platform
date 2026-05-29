@@ -2,6 +2,12 @@ from rest_framework import generics
 from .models import Professor
 from .serializers import ProfessorSerializer
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Avg
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from agendamentos.models import Agendamento
+from avaliacoes.models import Avaliacao
+from .models import Professor
 
 
 
@@ -53,4 +59,45 @@ class ProfessorUpdateView(generics.UpdateAPIView):
 
     def get_object(self):
 
-        return Professor.objects.get(user=self.request.user)    
+        return Professor.objects.get(user=self.request.user)   
+
+class DashboardProfessorView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        professor = Professor.objects.get(
+            user=request.user
+        )
+
+        pendentes = Agendamento.objects.filter(
+            professor=professor,
+            status='pendente'
+        ).count()
+
+        confirmados = Agendamento.objects.filter(
+            professor=professor,
+            status='confirmado'
+        ).count()
+
+        concluidos = Agendamento.objects.filter(
+            professor=professor,
+            status='concluido'
+        ).count()
+
+        avaliacoes = Avaliacao.objects.filter(
+            professor=professor
+        )
+
+        media = avaliacoes.aggregate(
+            Avg('nota')
+        )['nota__avg']
+
+        return Response({
+            'agendamentos_pendentes': pendentes,
+            'agendamentos_confirmados': confirmados,
+            'agendamentos_concluidos': concluidos,
+            'avaliacao_media': media or 0,
+            'total_avaliacoes': avaliacoes.count()
+        })     

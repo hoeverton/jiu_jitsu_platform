@@ -45,4 +45,4 @@ class CriarPixView(APIView):
             "qr_code_base64": payment["point_of_interaction"]["transaction_data"]["qr_code_base64"]
         })"""
 
-        return Response(payment_response)
+        
