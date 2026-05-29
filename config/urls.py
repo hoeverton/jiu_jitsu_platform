@@ -14,5 +14,6 @@ urlpatterns = [
     path('api/professores/',include('professores.urls')),
     path('api/',include('agendamentos.urls')),
     path('api/',include('avaliacoes.urls')),
+    path('api/pagamentos/',include('pagamentos.urls')),
 
 ]
