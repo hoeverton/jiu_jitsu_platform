@@ -183,3 +183,31 @@ class ProfessorDisponibilidadesView(generics.ListAPIView):
             professor_id=professor_id,
             disponivel=True
         ).order_by('data', 'hora_inicio')
+    
+class HistoricoAlunoView(generics.ListAPIView):
+
+    serializer_class = AgendamentoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+
+        return Agendamento.objects.filter(
+            aluno=self.request.user,
+            status='concluido'
+        ).order_by('-id')    
+    
+class HistoricoProfessorView(generics.ListAPIView):
+
+    serializer_class = AgendamentoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        return Agendamento.objects.filter(
+            professor=professor,
+            status='concluido'
+        ).order_by('-id')    
