@@ -30,10 +30,17 @@ class DashboardAlunoView(APIView):
             aluno=aluno,
             status='cancelado'
         ).count()
+        professores_treinados = Agendamento.objects.filter(
+            aluno=aluno,
+            status='concluido'
+        ).values(
+            'professor'
+        ).distinct().count()
 
         return Response({
             'agendamentos_pendentes': agendados,
             'agendamentos_confirmados': confirmados,
             'agendamentos_concluidos': concluidos,
             'agendamentos_cancelados': cancelados,
+            'professores_treinados': professores_treinados,
         })
