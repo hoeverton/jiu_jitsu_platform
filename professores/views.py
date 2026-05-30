@@ -8,13 +8,20 @@ from rest_framework.response import Response
 from agendamentos.models import Agendamento
 from avaliacoes.models import Avaliacao
 from .models import Professor
-
-
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
+from .models import Professor
 
 class ProfessorListView(generics.ListAPIView):
 
     queryset = Professor.objects.all()
     serializer_class = ProfessorSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        SearchFilter,
+        OrderingFilter,
+    ]
 
     filterset_fields = [
         'cidade',
@@ -100,4 +107,32 @@ class DashboardProfessorView(APIView):
             'agendamentos_concluidos': concluidos,
             'avaliacao_media': media or 0,
             'total_avaliacoes': avaliacoes.count()
-        })     
+        })  
+       
+class PerfilProfessorView(APIView):
+
+    def get(self, request, professor_id):
+
+        professor = Professor.objects.get(
+            id=professor_id
+        )
+
+        avaliacoes = Avaliacao.objects.filter(
+            professor=professor
+        )
+
+        media = avaliacoes.aggregate(
+            Avg('nota')
+        )['nota__avg']
+
+        return Response({
+            'id': professor.id,
+            'nome': professor.user.username,
+            'faixa': professor.faixa,
+            'cidade': professor.cidade,
+            'especialidade': professor.especialidade,
+            'preco_hora': professor.preco_hora,
+            'biografia': professor.biografia,
+            'avaliacao_media': media or 0,
+            'total_avaliacoes': avaliacoes.count()
+        })

@@ -170,3 +170,16 @@ class ConcluirAgendamentoView(generics.UpdateAPIView):
         serializer.save(
             status='concluido'
         )             
+
+class ProfessorDisponibilidadesView(generics.ListAPIView):
+
+    serializer_class = DisponibilidadeSerializer
+
+    def get_queryset(self):
+
+        professor_id = self.kwargs['professor_id']
+
+        return Disponibilidade.objects.filter(
+            professor_id=professor_id,
+            disponivel=True
+        ).order_by('data', 'hora_inicio')

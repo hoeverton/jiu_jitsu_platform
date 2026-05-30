@@ -5,6 +5,7 @@ from .views import (
     ProfessorDetailView,
     ProfessorUpdateView,
     DashboardProfessorView,
+    PerfilProfessorView,
 )
 
 urlpatterns = [
@@ -14,4 +15,5 @@ urlpatterns = [
     path('<int:pk>/',ProfessorDetailView.as_view(),name='professor-detail'),
     path('update/',ProfessorUpdateView.as_view(),name='professor-update'),
     path('dashboard/',DashboardProfessorView.as_view(),name='dashboard-professor'),
+    path('<int:professor_id>/',PerfilProfessorView.as_view(),name='perfil-professor'),
 ]
