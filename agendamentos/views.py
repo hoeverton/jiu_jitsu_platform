@@ -2,6 +2,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers
 from professores.models import Professor
+from django.utils import timezone
 
 from .models import (
     Disponibilidade,
@@ -79,7 +80,6 @@ class MeusAgendamentosView(generics.ListAPIView):
 class ProfessorAgendamentosView(generics.ListAPIView):
 
     serializer_class = AgendamentoSerializer
-
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -88,9 +88,20 @@ class ProfessorAgendamentosView(generics.ListAPIView):
             user=self.request.user
         )
 
-        return Agendamento.objects.filter(
+        queryset = Agendamento.objects.filter(
             professor=professor
         )
+
+        status = self.request.query_params.get(
+            'status'
+        )
+
+        if status:
+            queryset = queryset.filter(
+                status=status
+            )
+
+        return queryset.order_by('-id')
     
 class CancelarAgendamentoView(generics.UpdateAPIView):
 
@@ -194,11 +205,12 @@ class HistoricoAlunoView(generics.ListAPIView):
         return Agendamento.objects.filter(
             aluno=self.request.user,
             status='concluido'
-        ).order_by('-id')    
-    
-class HistoricoProfessorView(generics.ListAPIView):
+        ).order_by('-id')            
+
+class AgendaProfessorView(generics.ListAPIView):
 
     serializer_class = AgendamentoSerializer
+
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -209,5 +221,5 @@ class HistoricoProfessorView(generics.ListAPIView):
 
         return Agendamento.objects.filter(
             professor=professor,
-            status='concluido'
-        ).order_by('-id')    
+            status='confirmado'
+        ).order_by('id')

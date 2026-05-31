@@ -10,7 +10,7 @@ from .views import (
     ConcluirAgendamentoView,
     ProfessorDisponibilidadesView,
     HistoricoAlunoView,
-    HistoricoProfessorView,
+    
 )
 
 urlpatterns = [
@@ -35,6 +35,5 @@ urlpatterns = [
         name='professor-disponibilidades'),
     path('alunos/historico/',HistoricoAlunoView.as_view(),
         name='historico-aluno'),
-    path('professores/historico/',HistoricoProfessorView.as_view(),
-        name='historico-professor'),         
+             
 ]

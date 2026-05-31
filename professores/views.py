@@ -11,6 +11,7 @@ from .models import Professor
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Professor
+from .serializers import ProfessorSerializer
 
 class ProfessorListView(generics.ListAPIView):
 
@@ -136,3 +137,9 @@ class PerfilProfessorView(APIView):
             'avaliacao_media': media or 0,
             'total_avaliacoes': avaliacoes.count()
         })
+    
+class ProfessorDetalheView(generics.RetrieveAPIView):
+
+    queryset = Professor.objects.all()
+
+    serializer_class = ProfessorSerializer     

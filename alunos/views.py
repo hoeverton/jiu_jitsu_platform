@@ -2,6 +2,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from agendamentos.models import Agendamento
+from favoritos.models import Favorito
+from videos.models import CompraVideo
+from favoritos.serializers import FavoritoSerializer
+from videos.serializers import VideoSerializer
+from agendamentos.serializers import AgendamentoSerializer
+
 
 
 class DashboardAlunoView(APIView):
@@ -44,3 +50,42 @@ class DashboardAlunoView(APIView):
             'agendamentos_cancelados': cancelados,
             'professores_treinados': professores_treinados,
         })
+
+class BibliotecaAlunoView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        videos = CompraVideo.objects.filter(
+            aluno=request.user
+        )
+
+        favoritos = Favorito.objects.filter(
+            aluno=request.user
+        )
+
+        agendamentos = Agendamento.objects.filter(
+            aluno=request.user,
+            status='confirmado'
+        )
+
+        return Response({
+
+            'videos_comprados': VideoSerializer(
+                [compra.video for compra in videos],
+                many=True,
+                context={'request': request}
+            ).data,
+
+            'professores_favoritos': FavoritoSerializer(
+                favoritos,
+                many=True
+            ).data,
+
+            'agendamentos_confirmados': AgendamentoSerializer(
+                agendamentos,
+                many=True
+            ).data
+
+        })    
