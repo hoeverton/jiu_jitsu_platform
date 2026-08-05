@@ -20,13 +20,7 @@ class DisponibilidadeSerializer(serializers.ModelSerializer):
                 ]
 
 
-class AgendamentoSerializer(serializers.ModelSerializer):
 
-    class Meta:
-
-        model = Agendamento
-
-        fields = '__all__'
 
 class AgendamentoSerializer(serializers.ModelSerializer):
 

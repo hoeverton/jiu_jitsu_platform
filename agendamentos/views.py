@@ -3,6 +3,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers
 from professores.models import Professor
 from django.utils import timezone
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from collections import defaultdict
 
 from .models import (
     Disponibilidade,
@@ -15,11 +18,53 @@ from .serializers import (
 )
 
 
-class DisponibilidadeListView(generics.ListAPIView):
+class DisponibilidadeListView(APIView):
 
-    queryset = Disponibilidade.objects.all()
+    def get(self, request):
 
-    serializer_class = DisponibilidadeSerializer
+        professor = request.query_params.get("professor")
+
+        disponibilidades = Disponibilidade.objects.filter(
+            disponivel=True
+        )
+
+        if professor:
+
+            disponibilidades = disponibilidades.filter(
+                professor_id=professor
+            )
+
+        disponibilidades = disponibilidades.order_by(
+            "data",
+            "hora_inicio"
+        )
+
+        dias = defaultdict(list)
+
+        for disponibilidade in disponibilidades:
+
+            dias[
+                disponibilidade.data.strftime("%Y-%m-%d")
+            ].append(
+                {
+                    "id": disponibilidade.id,
+                    "hora_inicio": disponibilidade.hora_inicio.strftime("%H:%M"),
+                    "hora_fim": disponibilidade.hora_fim.strftime("%H:%M"),
+                }
+            )
+
+        resultado = []
+
+        for data, horarios in dias.items():
+
+            resultado.append(
+                {
+                    "data": data,
+                    "horarios": horarios,
+                }
+            )
+
+        return Response(resultado)
 
 
 class DisponibilidadeCreateView(generics.CreateAPIView):

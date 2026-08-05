@@ -55,7 +55,6 @@ class ProfessorCreateView(generics.CreateAPIView):
         serializer.save(user=self.request.user)
 
 class ProfessorDetailView(generics.RetrieveAPIView):
-
     queryset = Professor.objects.all()
     serializer_class = ProfessorSerializer
 
@@ -138,8 +137,8 @@ class PerfilProfessorView(APIView):
             'total_avaliacoes': avaliacoes.count()
         })
     
-class ProfessorDetalheView(generics.RetrieveAPIView):
+"""class ProfessorDetalheView(generics.RetrieveAPIView):
 
     queryset = Professor.objects.all()
 
-    serializer_class = ProfessorSerializer     
+    serializer_class = ProfessorSerializer"""     
