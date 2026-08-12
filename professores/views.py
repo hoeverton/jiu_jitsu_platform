@@ -142,3 +142,17 @@ class PerfilProfessorView(APIView):
     queryset = Professor.objects.all()
 
     serializer_class = ProfessorSerializer"""     
+
+class ProfessorMeView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        professor = Professor.objects.get(
+            user=request.user
+        )
+
+        serializer = ProfessorSerializer(professor)
+
+        return Response(serializer.data)
