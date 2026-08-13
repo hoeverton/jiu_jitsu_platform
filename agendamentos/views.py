@@ -287,3 +287,19 @@ class MinhasDisponibilidadesView(generics.ListAPIView):
             'data',
             'hora_inicio'
         )    
+
+class MinhasDisponibilidadesDetailView(generics.RetrieveUpdateDestroyAPIView):
+
+    serializer_class = DisponibilidadeSerializer
+
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        return Disponibilidade.objects.filter(
+            professor=professor
+        )
