@@ -10,6 +10,7 @@ from .views import (
     ConcluirAgendamentoView,
     ProfessorDisponibilidadesView,
     HistoricoAlunoView,
+    MinhasDisponibilidadesView,
     
 )
 
@@ -35,5 +36,7 @@ urlpatterns = [
         name='professor-disponibilidades'),
     path('alunos/historico/',HistoricoAlunoView.as_view(),
         name='historico-aluno'),
+    path('disponibilidades/minhas/',MinhasDisponibilidadesView.as_view(),
+        name='minhas-disponibilidades'),    
              
 ]

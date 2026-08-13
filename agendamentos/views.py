@@ -268,3 +268,22 @@ class AgendaProfessorView(generics.ListAPIView):
             professor=professor,
             status='confirmado'
         ).order_by('id')
+    
+class MinhasDisponibilidadesView(generics.ListAPIView):
+
+    serializer_class = DisponibilidadeSerializer
+
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        return Disponibilidade.objects.filter(
+            professor=professor
+        ).order_by(
+            'data',
+            'hora_inicio'
+        )    
