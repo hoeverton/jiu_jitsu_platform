@@ -28,6 +28,16 @@ class AgendamentoSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    professor_id = serializers.IntegerField(
+        source='professor.id',
+        read_only=True
+    )
+
+    professor_nome = serializers.CharField(
+        source='professor.user.username',
+        read_only=True
+    )
+
     data = serializers.DateField(
         source='disponibilidade.data',
         read_only=True
@@ -50,6 +60,8 @@ class AgendamentoSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'aluno_nome',
+            'professor_id',
+            'professor_nome',
             'disponibilidade',
             'data',
             'hora_inicio',
@@ -62,6 +74,8 @@ class AgendamentoSerializer(serializers.ModelSerializer):
             'status',
             'criado_em',
             'aluno_nome',
+            'professor_id',
+            'professor_nome',
             'data',
             'hora_inicio',
             'hora_fim',
