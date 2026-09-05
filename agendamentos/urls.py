@@ -15,6 +15,10 @@ from .views import (
     RegraDisponibilidadeCreateView,
     MinhasRegrasDisponibilidadeView,
     ProfessorAlunosView,
+    ProfessorAlunoDetalheView,
+    TrilhasListView,
+    TrilhaDetalheView,
+    ProfessorAlunoProgressoView,
     
 )
 
@@ -51,6 +55,18 @@ urlpatterns = [
         name='minhas-regras-disponibilidade'),
 
     path('professor/alunos/',ProfessorAlunosView.as_view(),
-        name='professor-alunos'),                
+        name='professor-alunos'),  
+
+    path("professor/alunos/<int:pk>/",ProfessorAlunoDetalheView.as_view(),
+        name="professor-aluno-detalhe"),
+
+    path('trilhas/',TrilhasListView.as_view(),
+        name='trilhas-list'),
+
+    path('trilhas/<int:pk>/',TrilhaDetalheView.as_view(),
+        name='trilha-detalhe'),
+
+    path('professor/alunos/<int:pk>/progresso/',ProfessorAlunoProgressoView.as_view(),
+        name='professor-aluno-progresso'),                       
              
 ]

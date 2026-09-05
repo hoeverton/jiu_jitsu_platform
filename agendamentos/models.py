@@ -180,3 +180,104 @@ class Agendamento(models.Model):
             f'{self.professor} - '
             f'{self.disponibilidade}'
         )
+    
+class Trilha(models.Model):
+    nome = models.CharField(max_length=150)
+
+    descricao = models.TextField(
+        blank=True
+    )
+
+    ordem = models.PositiveIntegerField(
+        default=0
+    )
+
+    ativa = models.BooleanField(
+        default=True
+    )
+
+    criado_em = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        ordering = [
+            'ordem',
+            'nome'
+        ]
+
+    def __str__(self):
+        return self.nome
+
+
+class Tecnica(models.Model):
+    trilha = models.ForeignKey(
+        Trilha,
+        on_delete=models.CASCADE,
+        related_name='tecnicas'
+    )
+
+    nome = models.CharField(
+        max_length=150
+    )
+
+    descricao = models.TextField(
+        blank=True
+    )
+
+    ordem = models.PositiveIntegerField(
+        default=0
+    )
+
+    ativa = models.BooleanField(
+        default=True
+    )
+
+    criado_em = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        ordering = [
+            'ordem',
+            'nome'
+        ]
+
+    def __str__(self):
+        return self.nome
+
+
+class ProgressoAluno(models.Model):
+    aluno = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='progresso_tecnicas'
+    )
+
+    tecnica = models.ForeignKey(
+        Tecnica,
+        on_delete=models.CASCADE,
+        related_name='progressos'
+    )
+
+    aprendido = models.BooleanField(
+        default=False
+    )
+
+    atualizado_em = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    'aluno',
+                    'tecnica'
+                ],
+                name='progresso_aluno_tecnica_unico'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.aluno} - {self.tecnica}'    

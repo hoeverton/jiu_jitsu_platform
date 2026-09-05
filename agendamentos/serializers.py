@@ -4,6 +4,9 @@ from .models import (
     RegraDisponibilidade,
     Disponibilidade,
     Agendamento,
+    Tecnica,
+    Trilha,
+    ProgressoAluno,
 )
 
 
@@ -157,3 +160,93 @@ class AgendamentoSerializer(
             'hora_inicio',
             'hora_fim',
         ]
+class TecnicaSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Tecnica
+
+        fields = [
+            'id',
+            'nome',
+            'descricao',
+            'ordem',
+            'ativa',
+        ]
+
+        read_only_fields = [
+            'id',
+        ]
+
+
+class TrilhaSerializer(serializers.ModelSerializer):
+
+    tecnicas = TecnicaSerializer(
+        many=True,
+        read_only=True
+    )
+
+    total_tecnicas = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Trilha
+
+        fields = [
+            'id',
+            'nome',
+            'descricao',
+            'ordem',
+            'ativa',
+            'total_tecnicas',
+            'tecnicas',
+        ]
+
+        read_only_fields = [
+            'id',
+            'total_tecnicas',
+            'tecnicas',
+        ]
+
+    def get_total_tecnicas(self, obj):
+        return obj.tecnicas.filter(
+            ativa=True
+        ).count()
+
+
+class ProgressoAlunoSerializer(serializers.ModelSerializer):
+
+    tecnica_nome = serializers.CharField(
+        source='tecnica.nome',
+        read_only=True
+    )
+
+    trilha_id = serializers.IntegerField(
+        source='tecnica.trilha.id',
+        read_only=True
+    )
+
+    trilha_nome = serializers.CharField(
+        source='tecnica.trilha.nome',
+        read_only=True
+    )
+
+    class Meta:
+        model = ProgressoAluno
+
+        fields = [
+            'id',
+            'aluno',
+            'tecnica',
+            'tecnica_nome',
+            'trilha_id',
+            'trilha_nome',
+            'aprendido',
+            'atualizado_em',
+        ]
+
+        read_only_fields = [
+            'id',
+            'tecnica_nome',
+            'trilha_id',
+            'trilha_nome',
+            'atualizado_em',
+        ]        

@@ -8,16 +8,23 @@ from rest_framework.response import Response
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+
 from .models import (
     Disponibilidade,
     Agendamento,
     RegraDisponibilidade,
+    Trilha,
+    Tecnica,
+    ProgressoAluno,
 )
 
 from .serializers import (
     DisponibilidadeSerializer,
     AgendamentoSerializer,
     RegraDisponibilidadeSerializer,
+    TrilhaSerializer,
+    TecnicaSerializer,
+    ProgressoAlunoSerializer,
 )
 
 def gerar_disponibilidades_professor(professor, dias=30):
@@ -423,7 +430,81 @@ class ProfessorAlunosView(generics.ListAPIView):
 
         return Response(
             list(alunos.values())
-        )    
+        ) 
+class ProfessorAlunoDetalheView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        professor = Professor.objects.get(
+            user=request.user
+        )
+
+        # Procura um agendamento deste professor
+        # com o aluno informado
+        primeiro_agendamento = (
+            Agendamento.objects
+            .filter(
+                professor=professor,
+                aluno_id=pk
+            )
+            .select_related(
+                'aluno',
+                'disponibilidade'
+            )
+            .first()
+        )
+
+        if not primeiro_agendamento:
+            return Response(
+                {"detail": "Aluno não encontrado."},
+                status=404
+            )
+
+        aluno = primeiro_agendamento.aluno
+
+        agendamentos = (
+            Agendamento.objects
+            .filter(
+                professor=professor,
+                aluno=aluno
+            )
+            .select_related(
+                'disponibilidade'
+            )
+            .order_by(
+                '-disponibilidade__data',
+                '-disponibilidade__hora_inicio'
+            )
+        )
+
+        historico = []
+
+        for agendamento in agendamentos:
+            disponibilidade = agendamento.disponibilidade
+
+            historico.append({
+                "id": agendamento.id,
+                "data": disponibilidade.data,
+                "hora_inicio": disponibilidade.hora_inicio,
+                "hora_fim": disponibilidade.hora_fim,
+                "status": agendamento.status,
+            })
+
+        return Response({
+            "id": aluno.id,
+            "nome": aluno.username,
+            "email": aluno.email,
+            "foto": (
+                aluno.foto.url
+                if aluno.foto
+                else None
+            ),
+            "total_aulas": agendamentos.count(),
+            "aulas_concluidas": agendamentos.filter(
+                status="concluido"
+            ).count(),
+            "historico": historico,
+        })
     
 class CancelarAgendamentoView(generics.UpdateAPIView):
 
@@ -618,4 +699,45 @@ class MinhasRegrasDisponibilidadeView(generics.ListAPIView):
         ).order_by(
             'dia_semana',
             'hora_inicio'
+        )
+
+class TrilhasListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+
+    queryset = Trilha.objects.filter(
+        ativa=True
+    ).prefetch_related('tecnicas')
+
+    serializer_class = TrilhaSerializer
+
+
+class TrilhaDetalheView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+
+    queryset = Trilha.objects.filter(
+        ativa=True
+    ).prefetch_related('tecnicas')
+
+    serializer_class = TrilhaSerializer
+
+
+class ProfessorAlunoProgressoView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+
+    serializer_class = ProgressoAlunoSerializer
+
+    def get_queryset(self):
+
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        aluno_id = self.kwargs['pk']
+
+        return ProgressoAluno.objects.filter(
+            aluno_id=aluno_id,
+            tecnica__trilha__ativa=True
+        ).select_related(
+            'tecnica',
+            'tecnica__trilha'
         )
