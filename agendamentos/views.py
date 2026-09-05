@@ -741,3 +741,27 @@ class ProfessorAlunoProgressoView(generics.ListAPIView):
             'tecnica',
             'tecnica__trilha'
         )
+
+class TrilhaCreateView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TrilhaSerializer
+
+    def perform_create(self, serializer):
+        Professor.objects.get(
+            user=self.request.user
+        )
+
+        serializer.save()
+
+class TecnicaCreateView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TecnicaSerializer
+
+    def perform_create(self, serializer):
+        Professor.objects.get(
+            user=self.request.user
+        )
+
+        serializer.save()           
+
+

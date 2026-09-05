@@ -19,7 +19,8 @@ from .views import (
     TrilhasListView,
     TrilhaDetalheView,
     ProfessorAlunoProgressoView,
-    
+    TrilhaCreateView,
+    TecnicaCreateView,
 )
 
 urlpatterns = [
@@ -67,6 +68,12 @@ urlpatterns = [
         name='trilha-detalhe'),
 
     path('professor/alunos/<int:pk>/progresso/',ProfessorAlunoProgressoView.as_view(),
-        name='professor-aluno-progresso'),                       
-             
+        name='professor-aluno-progresso'), 
+
+    path('trilhas/create/',TrilhaCreateView.as_view(),
+        name='trilha-create'),
+
+    path('tecnicas/create/',TecnicaCreateView.as_view(),
+        name='tecnica-create'),                          
+                
 ]

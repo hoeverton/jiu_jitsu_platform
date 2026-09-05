@@ -167,6 +167,7 @@ class TecnicaSerializer(serializers.ModelSerializer):
 
         fields = [
             'id',
+            'trilha',
             'nome',
             'descricao',
             'ordem',
