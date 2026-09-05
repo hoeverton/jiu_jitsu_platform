@@ -6,37 +6,145 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 from .models import (
     Disponibilidade,
-    Agendamento
+    Agendamento,
+    RegraDisponibilidade,
 )
 
 from .serializers import (
     DisponibilidadeSerializer,
-    AgendamentoSerializer
+    AgendamentoSerializer,
+    RegraDisponibilidadeSerializer,
 )
+
+def gerar_disponibilidades_professor(professor, dias=30):
+    """
+    Gera horários individuais de aula para os próximos X dias
+    com base nas regras semanais do professor.
+    """
+
+    hoje = timezone.localdate()
+
+    data_final = hoje + timedelta(days=dias)
+
+    regras = RegraDisponibilidade.objects.filter(
+        professor=professor,
+        ativo=True
+    )
+
+    for regra in regras:
+
+        data_atual = hoje
+
+        while data_atual <= data_final:
+
+            # Segunda = 0
+            # Terça = 1
+            # ...
+            # Domingo = 6
+
+            if data_atual.weekday() == regra.dia_semana:
+
+                hora_atual = regra.hora_inicio
+
+                while True:
+
+                    inicio_datetime = datetime.combine(
+                        data_atual,
+                        hora_atual
+                    )
+
+                    fim_datetime = (
+                        inicio_datetime
+                        + timedelta(minutes=regra.duracao_aula)
+                    )
+
+                    limite_datetime = datetime.combine(
+                        data_atual,
+                        regra.hora_fim
+                    )
+
+                    # Não cria uma aula que ultrapasse
+                    # o horário final do professor
+                    if fim_datetime > limite_datetime:
+                        break
+
+                    hora_inicio = inicio_datetime.time()
+                    hora_fim = fim_datetime.time()
+
+                    # Cria somente o horário individual
+                    Disponibilidade.objects.get_or_create(
+                        professor=professor,
+                        data=data_atual,
+                        hora_inicio=hora_inicio,
+                        hora_fim=hora_fim,
+                        defaults={
+                            "disponivel": True,
+                            "regra": regra,
+                        }
+                    )
+
+                    hora_atual = hora_fim
+
+            data_atual += timedelta(days=1)
 
 
 class DisponibilidadeListView(APIView):
 
     def get(self, request):
 
-        professor = request.query_params.get("professor")
-
-        disponibilidades = Disponibilidade.objects.filter(
-            disponivel=True
+        professor_id = request.query_params.get(
+            "professor"
         )
 
-        if professor:
+        if professor_id:
 
-            disponibilidades = disponibilidades.filter(
-                professor_id=professor
+            try:
+
+                professor = Professor.objects.get(
+                    id=professor_id
+                )
+
+            except Professor.DoesNotExist:
+
+                return Response(
+                    {
+                        "detail":
+                        "Professor não encontrado."
+                    },
+                    status=404
+                )
+
+            gerar_disponibilidades_professor(
+                professor,
+                dias=30
             )
 
-        disponibilidades = disponibilidades.order_by(
-            "data",
-            "hora_inicio"
+            disponibilidades = (
+                Disponibilidade.objects.filter(
+                    professor=professor,
+                    disponivel=True
+                )
+            )
+
+        else:
+
+            disponibilidades = (
+                Disponibilidade.objects.filter(
+                    disponivel=True
+                )
+            )
+
+        disponibilidades = (
+            disponibilidades
+            .filter(data__gte=timezone.localdate())
+            .order_by(
+                "data",
+                "hora_inicio"
+            )
         )
 
         dias = defaultdict(list)
@@ -44,12 +152,22 @@ class DisponibilidadeListView(APIView):
         for disponibilidade in disponibilidades:
 
             dias[
-                disponibilidade.data.strftime("%Y-%m-%d")
+                disponibilidade.data.strftime(
+                    "%Y-%m-%d"
+                )
             ].append(
                 {
                     "id": disponibilidade.id,
-                    "hora_inicio": disponibilidade.hora_inicio.strftime("%H:%M"),
-                    "hora_fim": disponibilidade.hora_fim.strftime("%H:%M"),
+
+                    "hora_inicio":
+                        disponibilidade.hora_inicio.strftime(
+                            "%H:%M"
+                        ),
+
+                    "hora_fim":
+                        disponibilidade.hora_fim.strftime(
+                            "%H:%M"
+                        ),
                 }
             )
 
@@ -66,21 +184,82 @@ class DisponibilidadeListView(APIView):
 
         return Response(resultado)
 
-
 class DisponibilidadeCreateView(generics.CreateAPIView):
 
     serializer_class = DisponibilidadeSerializer
 
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
 
         professor = Professor.objects.get(
-            user=self.request.user
+            user=request.user
         )
 
-        serializer.save(
-            professor=professor
+        serializer = self.get_serializer(
+            data=request.data
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        data = serializer.validated_data
+
+        data_disponibilidade = data["data"]
+        hora_inicio = data["hora_inicio"]
+        hora_fim = data["hora_fim"]
+
+        horarios_criados = []
+
+        inicio_datetime = datetime.combine(
+            data_disponibilidade,
+            hora_inicio
+        )
+
+        limite_datetime = datetime.combine(
+            data_disponibilidade,
+            hora_fim
+        )
+
+        while True:
+
+            fim_datetime = (
+                inicio_datetime
+                + timedelta(minutes=60)
+            )
+
+            if fim_datetime > limite_datetime:
+                break
+
+            disponibilidade, created = (
+                Disponibilidade.objects.get_or_create(
+                    professor=professor,
+                    data=data_disponibilidade,
+                    hora_inicio=inicio_datetime.time(),
+                    hora_fim=fim_datetime.time(),
+                    defaults={
+                        "disponivel": True,
+                    }
+                )
+            )
+
+            horarios_criados.append(
+                disponibilidade
+            )
+
+            inicio_datetime = fim_datetime
+
+        serializer_data = (
+            DisponibilidadeSerializer(
+                horarios_criados,
+                many=True
+            ).data
+        )
+
+        return Response(
+            serializer_data,
+            status=201
         )
 
 class AgendamentoCreateView(generics.CreateAPIView):
@@ -147,6 +326,104 @@ class ProfessorAgendamentosView(generics.ListAPIView):
             )
 
         return queryset.order_by('-id')
+    
+class ProfessorAlunosView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        professor = Professor.objects.get(
+            user=request.user
+        )
+
+        agendamentos = (
+            Agendamento.objects
+            .filter(professor=professor)
+            .select_related(
+                'aluno',
+                'disponibilidade'
+            )
+            .order_by('-disponibilidade__data',
+                      '-disponibilidade__hora_inicio')
+        )
+
+        alunos = {}
+
+        for agendamento in agendamentos:
+
+            aluno = agendamento.aluno
+
+            if aluno.id not in alunos:
+
+                alunos[aluno.id] = {
+                    'id': aluno.id,
+                    'nome': aluno.username,
+                    'email': aluno.email,
+                    'foto': (
+                        aluno.foto.url
+                        if aluno.foto
+                        else None
+                    ),
+                    'total_aulas': 0,
+                    'aulas_concluidas': 0,
+                    'ultima_aula': None,
+                    'proxima_aula': None,
+                }
+
+            dados = alunos[aluno.id]
+
+            dados['total_aulas'] += 1
+
+            if agendamento.status == 'concluido':
+                dados['aulas_concluidas'] += 1
+
+            data = (
+                agendamento.disponibilidade.data
+            )
+
+            hora = (
+                agendamento.disponibilidade.hora_inicio
+            )
+
+            data_hora = datetime.combine(
+                data,
+                hora
+            )
+
+            agora = timezone.localtime().replace(
+                tzinfo=None
+            )
+
+            if data_hora <= agora:
+
+                if (
+                    dados['ultima_aula'] is None
+                    or data_hora >
+                    datetime.fromisoformat(
+                        dados['ultima_aula']
+                    )
+                ):
+
+                    dados['ultima_aula'] = (
+                        data_hora.isoformat()
+                    )
+
+            elif (
+                dados['proxima_aula'] is None
+                or data_hora <
+                datetime.fromisoformat(
+                    dados['proxima_aula']
+                )
+            ):
+
+                dados['proxima_aula'] = (
+                    data_hora.isoformat()
+                )
+
+        return Response(
+            list(alunos.values())
+        )    
     
 class CancelarAgendamentoView(generics.UpdateAPIView):
 
@@ -302,4 +579,43 @@ class MinhasDisponibilidadesDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         return Disponibilidade.objects.filter(
             professor=professor
+        )
+    
+class RegraDisponibilidadeCreateView(generics.CreateAPIView):
+
+    serializer_class = (RegraDisponibilidadeSerializer)
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def perform_create(self, serializer):
+
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        serializer.save(
+            professor=professor
+        )   
+
+class MinhasRegrasDisponibilidadeView(generics.ListAPIView):
+
+    serializer_class = (RegraDisponibilidadeSerializer)
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def get_queryset(self):
+
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        return RegraDisponibilidade.objects.filter(
+            professor=professor
+        ).order_by(
+            'dia_semana',
+            'hora_inicio'
         )

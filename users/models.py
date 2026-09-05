@@ -12,4 +12,13 @@ class User(AbstractUser):
         ('recovery', 'Recovery'),
     )
 
-    tipo_usuario = models.CharField(max_length=20, choices=TIPOS)
+    tipo_usuario = models.CharField(
+        max_length=20,
+        choices=TIPOS
+    )
+
+    foto = models.ImageField(
+        upload_to="usuarios/",
+        blank=True,
+        null=True
+    )

@@ -12,6 +12,9 @@ from .views import (
     HistoricoAlunoView,
     MinhasDisponibilidadesView,
     MinhasDisponibilidadesDetailView,
+    RegraDisponibilidadeCreateView,
+    MinhasRegrasDisponibilidadeView,
+    ProfessorAlunosView,
     
 )
 
@@ -40,6 +43,14 @@ urlpatterns = [
     path('disponibilidades/minhas/',MinhasDisponibilidadesView.as_view(),
         name='minhas-disponibilidades'), 
     path('disponibilidades/minhas/<int:pk>/',MinhasDisponibilidadesDetailView.as_view(),
-        name='minha-disponibilidade-detail'),        
+        name='minha-disponibilidade-detail'),
+    path('regras-disponibilidade/',RegraDisponibilidadeCreateView.as_view(),
+        name='regra-disponibilidade-create'),
+
+    path('regras-disponibilidade/minhas/',MinhasRegrasDisponibilidadeView.as_view(),
+        name='minhas-regras-disponibilidade'),
+
+    path('professor/alunos/',ProfessorAlunosView.as_view(),
+        name='professor-alunos'),                
              
 ]

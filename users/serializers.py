@@ -35,6 +35,7 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "tipo_usuario",
+            "foto",
         ]  
 
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -44,4 +45,5 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         fields = [
             "username",
             "email",
+            "foto",
         ]        
