@@ -17,6 +17,11 @@ class User(AbstractUser):
         choices=TIPOS
     )
 
+    telefone = models.CharField(
+        max_length=20,
+        blank=True
+    )
+
     foto = models.ImageField(
         upload_to="usuarios/",
         blank=True,

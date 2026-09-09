@@ -182,33 +182,47 @@ class Agendamento(models.Model):
         )
     
 class Trilha(models.Model):
-    nome = models.CharField(max_length=150)
-
-    descricao = models.TextField(
+    professor = models.ForeignKey(
+        Professor,
+        on_delete=models.CASCADE,
+        related_name='trilhas',
+        null=True,
         blank=True
     )
-
-    ordem = models.PositiveIntegerField(
-        default=0
-    )
-
-    ativa = models.BooleanField(
-        default=True
-    )
-
-    criado_em = models.DateTimeField(
-        auto_now_add=True
-    )
+    nome = models.CharField(max_length=150)
+    descricao = models.TextField(blank=True)
+    ordem = models.PositiveIntegerField(default=0)
+    ativa = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = [
-            'ordem',
-            'nome'
+        ordering = ['ordem', 'nome']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['professor', 'nome'],
+                name='trilha_professor_nome_unico'
+            )
         ]
 
     def __str__(self):
         return self.nome
 
+class CategoriaTecnica(models.Model):
+    trilha = models.ForeignKey(
+        Trilha,
+        on_delete=models.CASCADE,
+        related_name='categorias'
+    )
+    nome = models.CharField(max_length=150)
+    ordem = models.PositiveIntegerField(default=0)
+    ativa = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['ordem', 'nome']
+
+    def __str__(self):
+        return self.nome
 
 class Tecnica(models.Model):
     trilha = models.ForeignKey(
@@ -216,32 +230,21 @@ class Tecnica(models.Model):
         on_delete=models.CASCADE,
         related_name='tecnicas'
     )
-
-    nome = models.CharField(
-        max_length=150
+    categoria = models.ForeignKey(
+        CategoriaTecnica,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tecnicas'
     )
-
-    descricao = models.TextField(
-        blank=True
-    )
-
-    ordem = models.PositiveIntegerField(
-        default=0
-    )
-
-    ativa = models.BooleanField(
-        default=True
-    )
-
-    criado_em = models.DateTimeField(
-        auto_now_add=True
-    )
+    nome = models.CharField(max_length=150)
+    descricao = models.TextField(blank=True)
+    ordem = models.PositiveIntegerField(default=0)
+    ativa = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = [
-            'ordem',
-            'nome'
-        ]
+        ordering = ['ordem', 'nome']
 
     def __str__(self):
         return self.nome
@@ -281,3 +284,55 @@ class ProgressoAluno(models.Model):
 
     def __str__(self):
         return f'{self.aluno} - {self.tecnica}'    
+    
+class TrilhaAluno(models.Model):
+
+    professor = models.ForeignKey(
+        Professor,
+        on_delete=models.CASCADE,
+        related_name='trilhas_alunos'
+    )
+
+    aluno = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='trilhas_aprendizado'
+    )
+
+    trilha = models.ForeignKey(
+        Trilha,
+        on_delete=models.CASCADE,
+        related_name='alunos'
+    )
+
+    ativa = models.BooleanField(
+        default=True
+    )
+
+    criado_em = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    atualizado_em = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    'professor',
+                    'aluno'
+                ],
+                name='trilha_aluno_professor_unica'
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f'{self.professor} - '
+            f'{self.aluno} - '
+            f'{self.trilha}'
+        )    
+    
+    

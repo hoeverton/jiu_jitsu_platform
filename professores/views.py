@@ -52,6 +52,22 @@ class ProfessorCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
 
+        if self.request.user.tipo_usuario != "professor":
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied(
+                "Somente usuários cadastrados como professor podem criar um perfil profissional."
+            )
+
+        if Professor.objects.filter(user=self.request.user).exists():
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError(
+                {
+                    "detail": "Este usuário já possui um perfil de professor."
+                }
+            )
+
         serializer.save(user=self.request.user)
 
 class ProfessorDetailView(generics.RetrieveAPIView):
@@ -137,11 +153,7 @@ class PerfilProfessorView(APIView):
             'total_avaliacoes': avaliacoes.count()
         })
     
-"""class ProfessorDetalheView(generics.RetrieveAPIView):
-
-    queryset = Professor.objects.all()
-
-    serializer_class = ProfessorSerializer"""     
+   
 
 class ProfessorMeView(APIView):
 
@@ -149,10 +161,53 @@ class ProfessorMeView(APIView):
 
     def get(self, request):
 
-        professor = Professor.objects.get(
-            user=request.user
-        )
+        try:
+            professor = Professor.objects.get(
+                user=request.user
+            )
+
+        except Professor.DoesNotExist:
+            return Response(
+                {
+                    "detail": "Perfil de professor não encontrado."
+                },
+                status=404
+            )
 
         serializer = ProfessorSerializer(professor)
 
         return Response(serializer.data)
+    
+
+class ProfessorWhatsappView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, professor_id):
+
+        try:
+            professor = Professor.objects.get(
+                id=professor_id
+            )
+
+        except Professor.DoesNotExist:
+            return Response(
+                {
+                    "detail": "Professor não encontrado."
+                },
+                status=404
+            )
+
+        telefone = professor.user.telefone
+
+        if not telefone:
+            return Response(
+                {
+                    "detail": "Este professor não possui WhatsApp cadastrado."
+                },
+                status=404
+            )
+
+        return Response({
+            "telefone": telefone
+        })    

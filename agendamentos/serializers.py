@@ -6,6 +6,7 @@ from .models import (
     Agendamento,
     Tecnica,
     Trilha,
+    CategoriaTecnica,
     ProgressoAluno,
 )
 
@@ -160,7 +161,35 @@ class AgendamentoSerializer(
             'hora_inicio',
             'hora_fim',
         ]
+
+
+class CategoriaTecnicaSerializer(serializers.ModelSerializer):
+
+    class Meta:
+
+        model = CategoriaTecnica
+
+        fields = [
+            'id',
+            'trilha',
+            'nome',
+            'ordem',
+            'ativa',
+            'criado_em',
+        ]
+
+        read_only_fields = [
+            'id',
+            'criado_em',
+        ]
+
+
 class TecnicaSerializer(serializers.ModelSerializer):
+
+    categoria_nome = serializers.CharField(
+        source='categoria.nome',
+        read_only=True
+    )
 
     class Meta:
         model = Tecnica
@@ -168,6 +197,8 @@ class TecnicaSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'trilha',
+            'categoria',
+            'categoria_nome',
             'nome',
             'descricao',
             'ordem',
@@ -176,7 +207,37 @@ class TecnicaSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             'id',
+            'categoria_nome',
         ]
+
+    def validate(self, attrs):
+
+        trilha = attrs.get(
+            'trilha',
+            getattr(
+                self.instance,
+                'trilha',
+                None
+            )
+        )
+
+        categoria = attrs.get(
+            'categoria',
+            getattr(
+                self.instance,
+                'categoria',
+                None
+            )
+        )
+
+        if categoria and trilha:
+            if categoria.trilha_id != trilha.id:
+                raise serializers.ValidationError({
+                    'categoria':
+                        'A categoria precisa pertencer à mesma trilha da técnica.'
+                })
+
+        return attrs
 
 
 class TrilhaSerializer(serializers.ModelSerializer):
@@ -230,6 +291,16 @@ class ProgressoAlunoSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    categoria_id = serializers.IntegerField(
+        source='tecnica.categoria.id',
+        read_only=True
+    )
+
+    categoria_nome = serializers.CharField(
+        source='tecnica.categoria.nome',
+        read_only=True
+    )
+
     class Meta:
         model = ProgressoAluno
 
@@ -240,6 +311,8 @@ class ProgressoAlunoSerializer(serializers.ModelSerializer):
             'tecnica_nome',
             'trilha_id',
             'trilha_nome',
+            'categoria_id',
+            'categoria_nome',
             'aprendido',
             'atualizado_em',
         ]
@@ -250,4 +323,4 @@ class ProgressoAlunoSerializer(serializers.ModelSerializer):
             'trilha_id',
             'trilha_nome',
             'atualizado_em',
-        ]        
+        ]

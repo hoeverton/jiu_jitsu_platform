@@ -5,12 +5,18 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.throttling import AnonRateThrottle
+
+
+class RegisterRateThrottle(AnonRateThrottle):
+    rate = "5/hour"
 
 
 class RegisterView(generics.CreateAPIView):
 
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
+    throttle_classes = [RegisterRateThrottle]
 
 
 class MeView(APIView):
