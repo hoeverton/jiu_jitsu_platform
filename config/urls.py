@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/alunos/', include('alunos.urls')),
     path('api/',include('favoritos.urls')),
     path('api/', include('videos.urls')),
+    path('api/', include('trilhas.urls')),
 
 ]
 if settings.DEBUG:

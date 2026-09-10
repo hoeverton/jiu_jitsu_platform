@@ -16,15 +16,8 @@ from .views import (
     RegraDisponibilidadeCreateView,
     MinhasRegrasDisponibilidadeView,
     ProfessorAlunosView,
-    ProfessorAlunoDetalheView,
-
-    # Trilhas
-    TrilhasListView,
-    TrilhaDetalheView,
-    TrilhaCreateView,
-    TecnicaCreateView,
-    TecnicaDetailView,
-
+    ProfessorAlunoDetalheView,  
+    
     # Progresso
     ProfessorAlunoProgressoView,
     MeuProgressoView,
@@ -161,39 +154,7 @@ urlpatterns = [
     ),
 
 
-    # =========================================================
-    # TRILHAS DE ESTUDO
-    # =========================================================
-
-    path(
-        'trilhas/',
-        TrilhasListView.as_view(),
-        name='trilhas-list'
-    ),
-
-    path(
-        'trilhas/<int:pk>/',
-        TrilhaDetalheView.as_view(),
-        name='trilha-detalhe'
-    ),
-
-    path(
-        'trilhas/create/',
-        TrilhaCreateView.as_view(),
-        name='trilha-create'
-    ),
-
-    path(
-        'tecnicas/create/',
-        TecnicaCreateView.as_view(),
-        name='tecnica-create'
-    ),
-
-    path(
-        'tecnicas/<int:pk>/',
-        TecnicaDetailView.as_view(),
-        name='tecnica-detail'
-    ),
+    
 
 
     # =========================================================

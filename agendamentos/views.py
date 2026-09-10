@@ -7,26 +7,23 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from collections import defaultdict
 from datetime import datetime, timedelta
-
+from trilhas.models import Tecnica, ProgressoAluno, TrilhaAluno, Trilha
 
 from .models import (
     Disponibilidade,
     Agendamento,
     RegraDisponibilidade,
-    Trilha,
-    Tecnica,
-    ProgressoAluno,
-    TrilhaAluno,
+    
 )
 
 from .serializers import (
     DisponibilidadeSerializer,
     AgendamentoSerializer,
-    RegraDisponibilidadeSerializer,
-    TrilhaSerializer,
-    TecnicaSerializer,
-    ProgressoAlunoSerializer,
+    RegraDisponibilidadeSerializer,    
+    
 )
+
+from trilhas.serializers import ProgressoAlunoSerializer
 
 def gerar_disponibilidades_professor(professor, dias=30):
     """
@@ -507,6 +504,270 @@ class ProfessorAlunoDetalheView(generics.RetrieveAPIView):
             "historico": historico,
         })
     
+class ProfessorAlunoTrilhaView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+
+        # Professor logado
+        try:
+            professor = Professor.objects.get(
+                user=request.user
+            )
+        except Professor.DoesNotExist:
+            return Response(
+                {"detail": "Professor não encontrado."},
+                status=404
+            )
+
+        # Verifica se o aluno possui relação com este professor
+        aluno_existe = Agendamento.objects.filter(
+            professor=professor,
+            aluno_id=pk
+        ).exists()
+
+        if not aluno_existe:
+            return Response(
+                {"detail": "Aluno não encontrado."},
+                status=404
+            )
+
+        # Trilha enviada pelo frontend
+        trilha_id = request.data.get("trilha")
+
+        if not trilha_id:
+            return Response(
+                {"detail": "Informe a trilha."},
+                status=400
+            )
+
+        # Verifica se a trilha existe e está ativa
+        try:
+            trilha = Trilha.objects.get(
+                id=trilha_id,
+                ativa=True
+            )
+        except Trilha.DoesNotExist:
+            return Response(
+                {"detail": "Trilha não encontrada."},
+                status=404
+            )
+
+        # Cria ou atualiza a trilha do aluno
+        trilha_aluno, criada = TrilhaAluno.objects.update_or_create(
+            professor=professor,
+            aluno_id=pk,
+            defaults={
+                "trilha": trilha,
+                "ativa": True,
+            }
+        )
+        for tecnica in trilha.tecnicas.filter(ativa=True):
+            ProgressoAluno.objects.get_or_create(
+                aluno_id=pk,
+                tecnica=tecnica,
+                defaults={
+                    "aprendido": False,
+                }
+            )
+
+        return Response(
+            {
+                "id": trilha_aluno.id,
+                "aluno": trilha_aluno.aluno_id,
+                "professor": trilha_aluno.professor_id,
+                "trilha": trilha_aluno.trilha_id,
+                "trilha_nome": trilha_aluno.trilha.nome,
+                "ativa": trilha_aluno.ativa,
+            },
+            status=201 if criada else 200
+        )    
+    
+class ProfessorAlunoProgressoCreateView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProgressoAlunoSerializer
+
+    def create(self, request, *args, **kwargs):
+
+        professor = Professor.objects.get(
+            user=request.user
+        )
+
+        aluno_id = self.kwargs['pk']
+
+        # Verifica se este aluno realmente possui
+        # agendamento com este professor
+        aluno_existe = Agendamento.objects.filter(
+            professor=professor,
+            aluno_id=aluno_id
+        ).exists()
+
+        if not aluno_existe:
+            return Response(
+                {
+                    "detail": "Aluno não encontrado."
+                },
+                status=404
+            )
+
+        tecnica_id = request.data.get('tecnica')
+
+        if not tecnica_id:
+            return Response(
+                {
+                    "detail": "Informe a técnica."
+                },
+                status=400
+            )
+
+        try:
+            tecnica = Tecnica.objects.get(
+                id=tecnica_id,
+                ativa=True,
+                trilha__ativa=True
+            )
+        except Tecnica.DoesNotExist:
+            return Response(
+                {
+                    "detail": "Técnica não encontrada."
+                },
+                status=404
+            )
+
+        progresso, criado = ProgressoAluno.objects.update_or_create(
+            aluno_id=aluno_id,
+            tecnica=tecnica,
+            defaults={
+                'aprendido': request.data.get(
+                    'aprendido',
+                    False
+                )
+            }
+        )
+
+        serializer = self.get_serializer(
+            progresso
+        )
+
+        return Response(
+            serializer.data,
+            status=201 if criado else 200
+        )
+
+class ProfessorAlunoProgressoView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProgressoAlunoSerializer
+
+    def get_queryset(self):
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        aluno_id = self.kwargs['pk']
+
+        return ProgressoAluno.objects.filter(
+            aluno_id=aluno_id,
+            tecnica__trilha__ativa=True
+        ).select_related(
+            'tecnica',
+            'tecnica__trilha'
+        )
+
+    def create(self, request, *args, **kwargs):
+
+        professor = Professor.objects.get(
+            user=request.user
+        )
+
+        aluno_id = self.kwargs['pk']
+
+        # Verifica se o aluno realmente possui
+        # agendamento com este professor
+        aluno_existe = Agendamento.objects.filter(
+            professor=professor,
+            aluno_id=aluno_id
+        ).exists()
+
+        if not aluno_existe:
+            return Response(
+                {
+                    "detail": "Aluno não encontrado."
+                },
+                status=404
+            )
+
+        tecnica_id = request.data.get('tecnica')
+
+        if not tecnica_id:
+            return Response(
+                {
+                    "detail": "Informe a técnica."
+                },
+                status=400
+            )
+
+        try:
+            tecnica = Tecnica.objects.get(
+                id=tecnica_id,
+                ativa=True,
+                trilha__ativa=True
+            )
+        except Tecnica.DoesNotExist:
+            return Response(
+                {
+                    "detail": "Técnica não encontrada."
+                },
+                status=404
+            )
+
+        progresso, criado = (
+            ProgressoAluno.objects.update_or_create(
+                aluno_id=aluno_id,
+                tecnica=tecnica,
+                defaults={
+                    'aprendido': request.data.get(
+                        'aprendido',
+                        False
+                    )
+                }
+            )
+        )
+
+        serializer = self.get_serializer(
+            progresso
+        )
+
+        return Response(
+            serializer.data,
+            status=201 if criado else 200
+        )
+    
+class MeuProgressoView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProgressoAlunoSerializer
+
+    def get_queryset(self):
+        trilha_aluno = TrilhaAluno.objects.filter(
+            aluno=self.request.user,
+            ativa=True,
+            trilha__ativa=True
+        ).select_related(
+            'trilha'
+        ).first()
+
+        if not trilha_aluno:
+            return ProgressoAluno.objects.none()
+
+        return ProgressoAluno.objects.filter(
+            aluno=self.request.user,
+            tecnica__trilha=trilha_aluno.trilha,
+            tecnica__ativa=True
+        ).select_related(
+            'tecnica',
+            'tecnica__trilha'
+        )    
+        
+    
 class CancelarAgendamentoView(generics.UpdateAPIView):
 
     serializer_class = AgendamentoSerializer
@@ -702,357 +963,3 @@ class MinhasRegrasDisponibilidadeView(generics.ListAPIView):
             'hora_inicio'
         )
 
-class TrilhasListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = TrilhaSerializer
-
-    def get_queryset(self):
-        professor = Professor.objects.get(
-            user=self.request.user
-        )
-
-        return Trilha.objects.filter(
-            professor=professor,
-            ativa=True
-        ).prefetch_related(
-            'tecnicas'
-        )
-
-
-
-class TrilhaCreateView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = TrilhaSerializer
-
-    def perform_create(self, serializer):
-        professor = Professor.objects.get(
-            user=self.request.user
-        )
-
-        serializer.save(
-            professor=professor
-        )
-
-class TecnicaCreateView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = TecnicaSerializer
-
-    def perform_create(self, serializer):
-        professor = Professor.objects.get(
-            user=self.request.user
-        )
-
-        trilha = serializer.validated_data['trilha']
-
-        if trilha.professor != professor:
-            raise serializers.ValidationError(
-                {
-                    "trilha": "Você não pode adicionar técnicas a uma trilha de outro professor."
-                }
-            )
-
-        categoria = serializer.validated_data.get('categoria')
-
-        if categoria and categoria.trilha != trilha:
-            raise serializers.ValidationError(
-                {
-                    "categoria": "A categoria precisa pertencer à mesma trilha."
-                }
-            )
-
-        serializer.save()
-        
-
-class TrilhaDetalheView(generics.RetrieveAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = TrilhaSerializer
-
-    def get_queryset(self):
-        professor = Professor.objects.get(
-            user=self.request.user
-        )
-
-        return Trilha.objects.filter(
-            professor=professor,
-            ativa=True
-        ).prefetch_related(
-            'tecnicas'
-        )                 
-
-class TecnicaDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = TecnicaSerializer
-
-    def get_queryset(self):
-        professor = Professor.objects.get(
-            user=self.request.user
-        )
-
-        return Tecnica.objects.filter(
-            trilha__professor=professor
-        )
-
-
-class ProfessorAlunoProgressoCreateView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = ProgressoAlunoSerializer
-
-    def create(self, request, *args, **kwargs):
-
-        professor = Professor.objects.get(
-            user=request.user
-        )
-
-        aluno_id = self.kwargs['pk']
-
-        # Verifica se este aluno realmente possui
-        # agendamento com este professor
-        aluno_existe = Agendamento.objects.filter(
-            professor=professor,
-            aluno_id=aluno_id
-        ).exists()
-
-        if not aluno_existe:
-            return Response(
-                {
-                    "detail": "Aluno não encontrado."
-                },
-                status=404
-            )
-
-        tecnica_id = request.data.get('tecnica')
-
-        if not tecnica_id:
-            return Response(
-                {
-                    "detail": "Informe a técnica."
-                },
-                status=400
-            )
-
-        try:
-            tecnica = Tecnica.objects.get(
-                id=tecnica_id,
-                ativa=True,
-                trilha__ativa=True
-            )
-        except Tecnica.DoesNotExist:
-            return Response(
-                {
-                    "detail": "Técnica não encontrada."
-                },
-                status=404
-            )
-
-        progresso, criado = ProgressoAluno.objects.update_or_create(
-            aluno_id=aluno_id,
-            tecnica=tecnica,
-            defaults={
-                'aprendido': request.data.get(
-                    'aprendido',
-                    False
-                )
-            }
-        )
-
-        serializer = self.get_serializer(
-            progresso
-        )
-
-        return Response(
-            serializer.data,
-            status=201 if criado else 200
-        )
-
-class ProfessorAlunoProgressoView(generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = ProgressoAlunoSerializer
-
-    def get_queryset(self):
-        professor = Professor.objects.get(
-            user=self.request.user
-        )
-
-        aluno_id = self.kwargs['pk']
-
-        return ProgressoAluno.objects.filter(
-            aluno_id=aluno_id,
-            tecnica__trilha__ativa=True
-        ).select_related(
-            'tecnica',
-            'tecnica__trilha'
-        )
-
-    def create(self, request, *args, **kwargs):
-
-        professor = Professor.objects.get(
-            user=request.user
-        )
-
-        aluno_id = self.kwargs['pk']
-
-        # Verifica se o aluno realmente possui
-        # agendamento com este professor
-        aluno_existe = Agendamento.objects.filter(
-            professor=professor,
-            aluno_id=aluno_id
-        ).exists()
-
-        if not aluno_existe:
-            return Response(
-                {
-                    "detail": "Aluno não encontrado."
-                },
-                status=404
-            )
-
-        tecnica_id = request.data.get('tecnica')
-
-        if not tecnica_id:
-            return Response(
-                {
-                    "detail": "Informe a técnica."
-                },
-                status=400
-            )
-
-        try:
-            tecnica = Tecnica.objects.get(
-                id=tecnica_id,
-                ativa=True,
-                trilha__ativa=True
-            )
-        except Tecnica.DoesNotExist:
-            return Response(
-                {
-                    "detail": "Técnica não encontrada."
-                },
-                status=404
-            )
-
-        progresso, criado = (
-            ProgressoAluno.objects.update_or_create(
-                aluno_id=aluno_id,
-                tecnica=tecnica,
-                defaults={
-                    'aprendido': request.data.get(
-                        'aprendido',
-                        False
-                    )
-                }
-            )
-        )
-
-        serializer = self.get_serializer(
-            progresso
-        )
-
-        return Response(
-            serializer.data,
-            status=201 if criado else 200
-        )
-    
-  
-class MeuProgressoView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = ProgressoAlunoSerializer
-
-    def get_queryset(self):
-        trilha_aluno = TrilhaAluno.objects.filter(
-            aluno=self.request.user,
-            ativa=True,
-            trilha__ativa=True
-        ).select_related(
-            'trilha'
-        ).first()
-
-        if not trilha_aluno:
-            return ProgressoAluno.objects.none()
-
-        return ProgressoAluno.objects.filter(
-            aluno=self.request.user,
-            tecnica__trilha=trilha_aluno.trilha,
-            tecnica__ativa=True
-        ).select_related(
-            'tecnica',
-            'tecnica__trilha'
-        )
-
-class ProfessorAlunoTrilhaView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, pk):
-
-        # Professor logado
-        try:
-            professor = Professor.objects.get(
-                user=request.user
-            )
-        except Professor.DoesNotExist:
-            return Response(
-                {"detail": "Professor não encontrado."},
-                status=404
-            )
-
-        # Verifica se o aluno possui relação com este professor
-        aluno_existe = Agendamento.objects.filter(
-            professor=professor,
-            aluno_id=pk
-        ).exists()
-
-        if not aluno_existe:
-            return Response(
-                {"detail": "Aluno não encontrado."},
-                status=404
-            )
-
-        # Trilha enviada pelo frontend
-        trilha_id = request.data.get("trilha")
-
-        if not trilha_id:
-            return Response(
-                {"detail": "Informe a trilha."},
-                status=400
-            )
-
-        # Verifica se a trilha existe e está ativa
-        try:
-            trilha = Trilha.objects.get(
-                id=trilha_id,
-                ativa=True
-            )
-        except Trilha.DoesNotExist:
-            return Response(
-                {"detail": "Trilha não encontrada."},
-                status=404
-            )
-
-        # Cria ou atualiza a trilha do aluno
-        trilha_aluno, criada = TrilhaAluno.objects.update_or_create(
-            professor=professor,
-            aluno_id=pk,
-            defaults={
-                "trilha": trilha,
-                "ativa": True,
-            }
-        )
-        for tecnica in trilha.tecnicas.filter(ativa=True):
-            ProgressoAluno.objects.get_or_create(
-                aluno_id=pk,
-                tecnica=tecnica,
-                defaults={
-                    "aprendido": False,
-                }
-            )
-
-        return Response(
-            {
-                "id": trilha_aluno.id,
-                "aluno": trilha_aluno.aluno_id,
-                "professor": trilha_aluno.professor_id,
-                "trilha": trilha_aluno.trilha_id,
-                "trilha_nome": trilha_aluno.trilha.nome,
-                "ativa": trilha_aluno.ativa,
-            },
-            status=201 if criada else 200
-        )

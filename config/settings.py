@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'avaliacoes',
     'favoritos',
     'corsheaders',
+    'trilhas',
 ]
 
 MIDDLEWARE = [

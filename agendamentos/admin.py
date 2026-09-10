@@ -3,6 +3,10 @@ from django.contrib import admin
 from .models import (
     Disponibilidade,
     Agendamento,
+    
+)
+
+from trilhas.models import(
     Trilha,
     CategoriaTecnica,
     Tecnica,
