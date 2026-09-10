@@ -163,5 +163,6 @@ class CategoriaTecnicaSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             'id',
+            'trilha',
             'criado_em',
         ]

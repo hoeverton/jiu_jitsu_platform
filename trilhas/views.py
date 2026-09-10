@@ -7,8 +7,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from collections import defaultdict
 from datetime import datetime, timedelta
-from .models import Tecnica,Trilha
-from .serializers import TecnicaSerializer, TrilhaSerializer
+from .models import Tecnica,Trilha,CategoriaTecnica
+from .serializers import (
+    TecnicaSerializer, 
+    TrilhaSerializer, 
+    CategoriaTecnicaSerializer 
+    )
 
 class TrilhasListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -101,7 +105,62 @@ class TecnicaDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
 
+class CategoriaTecnicaListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CategoriaTecnicaSerializer
 
+    def get_queryset(self):
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        trilha_id = self.kwargs['trilha_id']
+
+        return CategoriaTecnica.objects.filter(
+            trilha_id=trilha_id,
+            trilha__professor=professor,
+            ativa=True
+        ).select_related(
+            'trilha'
+        ).order_by(
+            'ordem',
+            'nome'
+        )
+
+    def perform_create(self, serializer):
+        professor = Professor.objects.get(
+            user=self.request.user
+        )
+
+        trilha_id = self.kwargs['trilha_id']
+
+        try:
+            trilha = Trilha.objects.get(
+                id=trilha_id,
+                professor=professor,
+                ativa=True
+            )
+        except Trilha.DoesNotExist:
+            raise serializers.ValidationError(
+                {
+                    "trilha": "Trilha não encontrada."
+                }
+            )
+
+        serializer.save(
+            trilha=trilha
+        )
+
+class CategoriaTecnicaDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CategoriaTecnicaSerializer
+
+    def get_queryset(self):
+        professor = Professor.objects.get(user=self.request.user)
+
+        return CategoriaTecnica.objects.filter(
+            trilha__professor=professor
+        )
   
 
 

@@ -5,6 +5,8 @@ from .views import ( TrilhasListView,
     TrilhaCreateView,
     TecnicaCreateView,
     TecnicaDetailView, 
+    CategoriaTecnicaListCreateView,
+    CategoriaTecnicaDetailView,
     
 )
 
@@ -37,6 +39,18 @@ urlpatterns = [
         'tecnicas/<int:pk>/',
         TecnicaDetailView.as_view(),
         name='tecnica-detail'
+    ),
+
+    path(
+    'trilhas/<int:trilha_id>/categorias/',
+    CategoriaTecnicaListCreateView.as_view(),
+    name='categoria-tecnica-list-create'
+    ),
+
+    path(
+        'trilhas/<int:trilha_id>/categorias/<int:pk>/',
+        CategoriaTecnicaDetailView.as_view(),
+        name='categoria-tecnica-detail'
     ),
 ]
 
